@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Mix Design Calculator – IS 10262</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1d2330;--mut:#5d6677;--bd:#d9dde5;--ac:#b4531f;--ac2:#fbeee6;--ok:#1b7a3d;--warn:#a15c00;}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#14171d;--card:#1c2028;--tx:#e8ebf1;--mut:#9aa3b3;--bd:#2f3542;--ac:#e8814a;--ac2:#2b211b;--ok:#5fcf86;--warn:#f0b04d;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}
+.wrap{max-width:980px;margin:0 auto}
+h1{font-size:1.45rem;margin:.2em 0}
+.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h2{font-size:1rem;margin:0 0 12px;color:var(--ac)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:.82rem;color:var(--mut);margin-bottom:3px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.chk{display:flex;gap:8px;align-items:center;margin-top:20px}.chk input{width:auto}.chk label{margin:0;color:var(--tx)}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;margin-right:8px}
+button.sec{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600;font-size:.8rem}
+.scroll{overflow-x:auto}
+.ratio{background:var(--ac2);border-radius:10px;padding:12px;font-size:1.05rem;font-weight:600;text-align:center;margin-top:12px}
+.steps div{padding:6px 0;border-bottom:1px dashed var(--bd)}.steps div:last-child{border:0}
+.steps b{color:var(--ac)}
+.warn{color:var(--warn);font-size:.9rem;margin:4px 0}.ok{color:var(--ok);font-size:.9rem}
+.note{font-size:.8rem;color:var(--mut)}
+#out{display:none}
+@media print{button,#inputs{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Concrete Mix Design Calculator</h1>
+<p class="sub">Based on IS 10262 (2019) with IS 456 durability limits · Absolute volume method, 1 m³ of concrete</p>
+
+<div id="inputs">
+<div class="card"><h2>1. Stipulations for proportioning</h2>
+<div class="grid">
+<div><label>Grade of concrete</label><select id="grade"></select></div>
+<div><label>Exposure condition (IS 456)</label>
+<select id="expo"><option value="0">Mild</option><option value="1" selected>Moderate</option><option value="2">Severe</option><option value="3">Very severe</option><option value="4">Extreme</option></select></div>
+<div><label>Type of structure</label><select id="rcc"><option value="1">Reinforced concrete (RCC)</option><option value="0">Plain concrete (PCC)</option></select></div>
+<div><label>Max. nominal aggregate size (mm)</label><select id="msa"><option>10</option><option selected>20</option><option>40</option></select></div>
+<div><label>Workability – slump (mm)</label><input id="slump" type="number" value="100" min="25" max="200"></div>
+<div><label>Degree of supervision</label><select id="sup"><option value="good">Good</option><option value="fair">Fair</option></select></div>
+<div><label>Aggregate shape</label>
+<select id="shape"><option value="0">Angular / crushed</option><option value="10">Sub-angular</option><option value="20">Gravel with some crushed</option><option value="25">Rounded gravel</option></select></div>
+<div><label>Cement grade (IS 269 / 8112 / 12269)</label><select id="cgrade"><option value="0.8">33 grade</option><option value="1" selected>43 grade</option><option value="1.15">53 grade</option></select></div>
+</div></div>
+
+<div class="card"><h2>2. Material test data</h2>
+<div class="grid">
+<div><label>Specific gravity – cement</label><input id="sgc" type="number" step="0.01" value="3.15"></div>
+<div><label>Specific gravity – coarse aggregate (SSD)</label><input id="sgca" type="number" step="0.01" value="2.74"></div>
+<div><label>Specific gravity – fine aggregate (SSD)</label><input id="sgfa" type="number" step="0.01" value="2.65"></div>
+<div><label>Fine aggregate zone (IS 383)</label><select id="zone"><option value="1">Zone I</option><option value="2" selected>Zone II</option><option value="3">Zone III</option><option value="4">Zone IV</option></select></div>
+<div><label>Water absorption – CA (%)</label><input id="abca" type="number" step="0.1" value="0.5"></div>
+<div><label>Water absorption – FA (%)</label><input id="abfa" type="number" step="0.1" value="1.0"></div>
+<div><label>Moisture content – CA (%)</label><input id="mca" type="number" step="0.1" value="0.5"></div>
+<div><label>Moisture content – FA (%)</label><input id="mfa" type="number" step="0.1" value="1.0"></div>
+</div></div>
+
+<div class="card"><h2>3. Admixtures &amp; options</h2>
+<div class="grid">
+<div><label>Superplasticizer (% of cementitious)</label><input id="sp" type="number" step="0.1" value="0"></div>
+<div><label>Water reduction by admixture (%)</label><input id="wr" type="number" step="1" value="0"></div>
+<div><label>Specific gravity – admixture</label><input id="sgsp" type="number" step="0.01" value="1.08"></div>
+<div><label>Fly ash (% of cementitious)</label><input id="fa_pct" type="number" step="1" value="0"></div>
+<div><label>Specific gravity – fly ash</label><input id="sgfly" type="number" step="0.01" value="2.2"></div>
+<div><label>Manual w/c ratio (optional)</label><input id="wcman" type="number" step="0.01" placeholder="auto"></div>
+<div><label>Trial batch volume (m³)</label><input id="vol" type="number" step="0.001" value="1"></div>
+<div class="chk"><input id="pump" type="checkbox"><label for="pump">Pumpable concrete (reduce CA by 10%)</label></div>
+</div></div>
+<button onclick="calc()">Calculate mix design</button>
+<button class="sec" onclick="window.print()">Print</button>
+</div>
+
+<div id="out" style="margin-top:14px">
+<div class="card"><h2>Mix proportions per m³ of concrete</h2>
+<div class="scroll"><table id="tbl"></table></div>
+<div class="ratio" id="ratio"></div>
+<div id="msgs" style="margin-top:8px"></div></div>
+<div class="card"><h2>Design steps</h2><div class="steps" id="steps"></div></div>
+<p class="note">Notes: w/c ratio from target strength uses an approximate Abrams-type fit of the IS 10262 strength–w/c curves; verify with the curves in the code and always confirm with laboratory trial mixes. Coarse aggregate volume fractions and water contents are taken from the standard's tables for the stated conditions. This tool is an aid, not a substitute for the code or engineering judgement.</p>
+</div>
+</div>
+
+<script>
+const grades=[10,15,20,25,30,35,40,45,50,55,60,65,70,75,80];
+const g=document.getElementById('grade');
+grades.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent='M'+v;if(v===25)o.selected=true;g.appendChild(o)});
+
+const EXPO={maxWC:[0.60,0.55,0.50,0.45,0.40],minC:[300,300,320,340,360],minGrade:[20,25,30,35,40],minPCC:[220,240,250,260,280],pccGrade:[10,15,20,25,30]};
+const WATER={10:208,20:186,40:165};
+const CAVOL={10:0.50,20:0.62,40:0.71};
+const AIR={10:1.5,20:1.0,40:0.8};
+const ZADJ={1:0.01,2:0,3:-0.01,4:-0.02};
+
+function sX(f){ // standard deviation s and factor X (IS 10262:2019 Table 2)
+  if(f<=15)return{s:3.5,x:5.0};
+  if(f<=25)return{s:4.0,x:5.5};
+  if(f<=50)return{s:5.0,x:6.5};
+  return{s:6.0,x:8.0};
+}
+const n=id=>parseFloat(document.getElementById(id).value)||0;
+const r=(v,d=1)=>(+v).toFixed(d);
+
+function calc(){
+  const fck=n('grade'),e=+n('expo'),rcc=n('rcc')===1,msa=document.getElementById('msa').value,slump=n('slump');
+  const steps=[],msgs=[];
+  // 1 target strength
+  const {s,x}=sX(fck);
+  const s1=fck+1.65*s,s2=fck+x,ft=Math.max(s1,s2);
+  steps.push(`<b>Step 1 – Target mean strength:</b> s = ${s} MPa, X = ${x}. f′ck = max(${fck}+1.65×${s} = ${r(s1,2)}, ${fck}+${x} = ${r(s2,2)}) = <b>${r(ft,2)} MPa</b>.`);
+  // 2 w/c
+  const k=n('cgrade');
+  let wcStr=0.5+0.1*Math.log(k*31.6/ft)/Math.log(1.32);
+  wcStr=Math.max(0.25,Math.min(0.75,wcStr));
+  const wcMax=EXPO.maxWC[e];
+  let wc=Math.min(wcStr,wcMax),man=n('wcman');
+  if(man>0){wc=man;}
+  steps.push(`<b>Step 2 – Water–cement ratio:</b> from strength ≈ ${r(wcStr,2)}; max permitted for exposure (IS 456 Table 5) = ${wcMax}. Adopted w/c = <b>${r(wc,2)}</b>${man>0?' (manual)':''}.`);
+  if(man>0&&man>wcMax)msgs.push(`<div class="warn">⚠ Manual w/c ${man} exceeds IS 456 limit of ${wcMax} for this exposure.</div>`);
+  const minG=rcc?EXPO.minGrade[e]:EXPO.pccGrade[e];
+  if(fck<minG)msgs.push(`<div class="warn">⚠ Grade M${fck} is below the minimum M${minG} required by IS 456 for this exposure${rcc?' (RCC)':' (PCC)'}.</div>`);
+  // 3 water
+  let w50=WATER[msa]-n('shape');
+  let w=w50*(1+0.03*(slump-50)/25);
+  const wr=n('wr');
+  let wAdm=w;
+  if(wr>0)wAdm=w*(1-wr/100);
+  steps.push(`<b>Step 3 – Water content:</b> base for 50 mm slump, ${msa} mm aggregate = ${WATER[msa]} kg/m³${n('shape')?`, shape correction −${n('shape')}`:''} → ${r(w50)}. Slump ${slump} mm: +3% per 25 mm → ${r(w)} kg/m³${wr>0?`; admixture reduces by ${wr}% → <b>${r(wAdm)} kg/m³</b>`:` → <b>${r(wAdm)} kg/m³</b>`}.`);
+  w=wAdm;
+  // 4 cementitious
+  let cm=w/wc;
+  const minC=rcc?EXPO.minC[e]:EXPO.minPCC[e];
+  let cmAdopt=Math.max(cm,minC);
+  if(cmAdopt>cm){msgs.push(`<div class="warn">⚠ Calculated cementitious content (${r(cm,0)}) raised to minimum ${minC} kg/m³ – w/c is effectively lowered to ${r(w/cmAdopt,2)}.</div>`);}
+  const wcEff=w/cmAdopt;
+  const fly=cmAdopt*n('fa_pct')/100, cem=cmAdopt-fly;
+  if(cmAdopt>450)msgs.push(`<div class="warn">⚠ Cementitious content ${r(cmAdopt,0)} kg/m³ exceeds the 450 kg/m³ limit (IS 456); consider mineral admixture / higher cement grade / superplasticizer.</div>`);
+  steps.push(`<b>Step 4 – Cementitious content:</b> ${r(w)} / ${r(wc,2)} = ${r(cm,1)} kg/m³; minimum for exposure = ${minC}. Adopted = <b>${r(cmAdopt,1)} kg/m³</b> (cement ${r(cem,1)}${fly?`, fly ash ${r(fly,1)}`:''}).`);
+  // 5 CA volume
+  let vca=CAVOL[msa]+ZADJ[n('zone')]+0.01*(0.5-wcEff)/0.05;
+  if(document.getElementById('pump').checked)vca*=0.9;
+  vca=Math.max(0.3,Math.min(0.85,vca));
+  steps.push(`<b>Step 5 – Coarse aggregate proportion:</b> base ${CAVOL[msa]} (${msa} mm, zone II, w/c 0.50); zone correction ${ZADJ[n('zone')]>=0?'+':''}${ZADJ[n('zone')]}; w/c correction ${r(0.01*(0.5-wcEff)/0.05,3)}${document.getElementById('pump').checked?'; pumpable ×0.9':''}. Volume of CA per unit volume of total aggregate = <b>${r(vca,3)}</b>; FA = ${r(1-vca,3)}.`);
+  // 6 absolute volumes
+  const admMass=cmAdopt*n('sp')/100;
+  const vC=cem/(n('sgc')*1000),vF=fly/(n('sgfly')*1000),vW=w/1000,vA=admMass/(n('sgsp')*1000);
+  const vAgg=1-(vC+vF+vW+vA);
+  const ca=vAgg*vca*n('sgca')*1000, fa=vAgg*(1-vca)*n('sgfa')*1000;
+  steps.push(`<b>Step 6 – Absolute volumes (1 m³; entrapped air ≈ ${AIR[msa]}%):</b> cement ${r(vC,4)}, fly ash ${r(vF,4)}, water ${r(vW,4)}, admixture ${r(vA,4)} m³. Aggregate volume = <b>${r(vAgg,4)} m³</b>.`);
+  steps.push(`<b>Step 7 – Aggregate masses (SSD):</b> CA = ${r(vAgg,4)}×${r(vca,3)}×${n('sgca')}×1000 = <b>${r(ca,1)} kg</b>; FA = ${r(vAgg,4)}×${r(1-vca,3)}×${n('sgfa')}×1000 = <b>${r(fa,1)} kg</b>.`);
+  // 8 moisture
+  const caB=ca*(1+n('mca')/100)/(1+n('abca')/100), faB=fa*(1+n('mfa')/100)/(1+n('abfa')/100);
+  const freeW=(caB-ca)+(faB-fa), wAdd=w-freeW;
+  steps.push(`<b>Step 8 – Field moisture correction:</b> free water on aggregates = ${r(freeW,1)} kg → water to add = ${r(w,1)} − ${r(freeW,1)} = <b>${r(wAdd,1)} kg</b>.`);
+  const V=n('vol')||1;
+  const rows=[['Cement',cem,cem],['Fly ash',fly,fly],['Water',w,wAdd],['Fine aggregate',fa,faB],['Coarse aggregate',ca,caB],['Admixture',admMass,admMass]].filter(a=>a[1]>0);
+  let t='<tr><th>Material</th><th>SSD design (kg/m³)</th><th>Field batch (kg/m³)</th><th>Field batch for '+V+' m³ (kg)</th></tr>';
+  rows.forEach(a=>t+=`<tr><td>${a[0]}</td><td>${r(a[1])}</td><td>${r(a[2])}</td><td>${r(a[2]*V)}</td></tr>`);
+  const tot=rows.reduce((p,a)=>p+a[1],0);
+  t+=`<tr><td><b>Total (density)</b></td><td><b>${r(tot)}</b></td><td></td><td></td></tr>`;
+  document.getElementById('tbl').innerHTML=t;
+  document.getElementById('ratio').textContent=`Cement : FA : CA = 1 : ${r(fa/cmAdopt,2)} : ${r(ca/cmAdopt,2)}   |   w/cm = ${r(wcEff,2)}`;
+  if(!msgs.length)msgs.push('<div class="ok">✓ All IS 456 durability limits satisfied.</div>');
+  if(vAgg<=0)msgs.push('<div class="warn">⚠ Aggregate volume is not positive – check inputs.</div>');
+  document.getElementById('msgs').innerHTML=msgs.join('');
+  document.getElementById('steps').innerHTML=steps.map(s=>`<div>${s}</div>`).join('');
+  const o=document.getElementById('out');o.style.display='block';o.scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
